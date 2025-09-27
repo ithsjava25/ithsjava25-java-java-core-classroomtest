@@ -2,21 +2,21 @@
   "tests": [
     {
       "name": "Compilation Check",
-      "run": "mvn compile",
+      "run": "mvn --no-transfer-progress compile",
       "points": 0,
       "timeout": 10,
       "required": true
     },
     {
       "name": "Basic Tests",
-      "run": "mvn test -Dtest=BasicTest",
+      "run": "mvn --no-transfer-progress test -Dtest=BasicTest",
       "points": 1,
       "timeout": 10,
       "required": true
     },
     {
       "name": "Edge Case Tests",
-      "run": "mvn test -Dtest=EdgeCaseTest",
+      "run": "mvn --no-transfer-progress test -Dtest=EdgeCaseTest",
       "points": 2,
       "timeout": 10
     }
