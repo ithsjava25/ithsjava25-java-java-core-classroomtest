@@ -21,7 +21,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '25'
-           - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
       # 🧪 Compilation
       - name: Compilation Check
