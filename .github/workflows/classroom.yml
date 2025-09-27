@@ -21,22 +21,49 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '25'
-      - uses: actions/checkout@v5
-      - name: Run autograder
-        id: grading
-        uses: education/autograding@v1
+           - uses: actions/checkout@v5
+
+      # 🧪 Compilation
+      - name: Compilation Check
+        id: compile
+        run: mvn -ntp compile
+
+      # ✅ Basic functionality
+      - name: Basic Tests
+        id: basic
+        run: mvn -ntp test -Dtest=BasicTest
+
+      # ⚠️ Optional edge cases
+      - name: Edge Case Tests
+        id: edge
         continue-on-error: true
-      - name: Fail if critical tests failed
+        run: mvn -ntp test -Dtest=EdgeCaseTest
+
+      # 🧮 Scoring and conditional failure
+      - name: Calculate and Report Points
         run: |
-          RESULTS=".autograding/results.json"
-          if jq -e '.tests[] | select(.name == "Compilation Check" and .status != "passed")' "$RESULTS"; then
+          POINTS=0
+          MAX=3
+
+          if [ "${{ steps.compile.outcome }}" == "success" ]; then
+            POINTS=$((POINTS + 1))
+          else
             echo "❌ Compilation failed"
             exit 1
           fi
-          if jq -e '.tests[] | select(.name == "Basic Tests" and .status != "passed")' "$RESULTS"; then
+
+          if [ "${{ steps.basic.outcome }}" == "success" ]; then
+            POINTS=$((POINTS + 1))
+          else
             echo "❌ Basic tests failed"
             exit 1
           fi
+
+          if [ "${{ steps.edge.outcome }}" == "success" ]; then
+            POINTS=$((POINTS + 1))
+          fi
+
+          echo "Points ${POINTS}/${MAX}"
   ai_feedback:
     name: AI-Powered Feedback
     needs: autograding
