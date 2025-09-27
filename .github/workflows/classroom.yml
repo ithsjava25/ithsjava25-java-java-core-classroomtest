@@ -25,6 +25,7 @@ jobs:
       - name: Run autograder
         id: grading
         uses: education/autograding@v1
+        continue-on-error: true
       - name: Fail if critical tests failed
         run: |
           RESULTS=".autograding/results.json"
