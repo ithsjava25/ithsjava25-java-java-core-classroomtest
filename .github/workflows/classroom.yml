@@ -25,7 +25,17 @@ jobs:
       - name: Run autograder
         id: grading
         uses: education/autograding@v1
-
+      - name: Fail if critical tests failed
+        run: |
+          RESULTS=".autograding/results.json"
+          if jq -e '.tests[] | select(.name == "Compilation Check" and .status != "passed")' "$RESULTS"; then
+            echo "❌ Compilation failed"
+            exit 1
+          fi
+          if jq -e '.tests[] | select(.name == "Basic Tests" and .status != "passed")' "$RESULTS"; then
+            echo "❌ Basic tests failed"
+            exit 1
+          fi
   ai_feedback:
     name: AI-Powered Feedback
     needs: autograding
