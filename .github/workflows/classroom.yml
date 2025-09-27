@@ -64,6 +64,7 @@ jobs:
           fi
 
           echo "Points ${POINTS}/${MAX}"
+          exit 0
   ai_feedback:
     name: AI-Powered Feedback
     needs: autograding
