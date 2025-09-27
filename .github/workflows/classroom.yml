@@ -31,13 +31,13 @@ jobs:
       # ✅ Basic functionality
       - name: Basic Tests
         id: basic
-        run: mvn -ntp test -Dtest=GradingTests$BasicTest
+        run: mvn -ntp test -Dtest=BasicTest
 
       # ⚠️ Optional edge cases
       - name: Edge Case Tests
         id: edge
         continue-on-error: true
-        run: mvn -ntp test -Dtest=GradingTests$EdgeCaseTest
+        run: mvn -ntp test -Dtest=EdgeCaseTest
 
       # 🧮 Scoring and conditional failure
       - name: Calculate and Report Points
