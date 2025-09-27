@@ -72,14 +72,24 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+  provide_feedback:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+      SYSTEM_PROMPT: ${{ vars.SYSTEM_PROMPT }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      # 🧠 Read instructions
       - name: Read assignment instructions
         id: instructions
         run: |
+          # Reads the content of the README.md file into an output variable.
+          # The `EOF` marker is used to handle multi-line file content.
           echo "instructions=$(cat README.md | sed 's/\"/\\\"/g' | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n/\\\\n/g')" >> $GITHUB_OUTPUT
 
-      # 📦 Read source code
       - name: Read source code
         id: source_code
         run: |
@@ -93,7 +103,6 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # 🧪 Read test code
       - name: Read test code
         id: test_code
         run: |
@@ -110,14 +119,10 @@ jobs:
             fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
-
-      # 🤖 Generate AI Feedback
       - name: Generate AI Feedback
         id: ai_feedback
-        env:
-          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
-          SYSTEM_PROMPT: ${{ vars.SYSTEM_PROMPT }}
         run: |
+          # This step sends the collected data to the OpenRouter API.
           INSTRUCTIONS=$(jq -Rs . <<'EOF'
           ${{ steps.instructions.outputs.instructions }}
           EOF
@@ -130,30 +135,44 @@ jobs:
           ${{ steps.test_code.outputs.test_code }}
           EOF
           )
-
+          
           if [ -z "$INSTRUCTIONS" ] || [ -z "$SOURCE_CODE" ] || [ -z "$TEST_CODE" ]; then
             echo "Error: One or more required variables are not set."
-            exit 1
+          exit 1
           fi
 
-          PAYLOAD="Please provide feedback on the following Java assignment.\n\n--- Assignment Instructions ---\n${INSTRUCTIONS}\n\n--- Source files ---\n${SOURCE_CODE}\n\n--- Test files ---\n${TEST_CODE}"
-
+          # Assigning to USER_CONTENT with variable expansion
+          PAYLOAD="Please provide feedback on the following Java assignment.
+          
+          --- Assignment Instructions ---
+          ${INSTRUCTIONS}
+          
+          --- Source files ---          
+          ${SOURCE_CODE}
+          
+          --- Test files ---
+          ${TEST_CODE}"
+          
           JSON_CONTENT=$(jq -n \
-            --arg model "$OPENROUTER_MODEL" \
-            --arg system_prompt "$SYSTEM_PROMPT" \
-            --arg payload "$PAYLOAD" \
-            '{
-              models: $model,
-              messages: [
-                {role: "system", content: $system_prompt},
-                {role: "user", content: $payload}
-              ]
-            }')
-
+          --argjson model "$OPENROUTER_MODEL" \
+          --arg system_prompt "$SYSTEM_PROMPT" \
+          --arg payload "$PAYLOAD" \
+          '{
+          models: $model,
+          messages: [
+            {role: "system", content: $system_prompt},
+            {role: "user", content: $payload}
+          ]
+          }')
+          
+          echo "$JSON_CONTENT"
+          
           API_RESPONSE=$(echo "$JSON_CONTENT" | curl https://openrouter.ai/api/v1/chat/completions \
-            -H "Authorization: Bearer ${{ secrets.OPENROUTER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d @-)
+          -H "Authorization: Bearer ${{ secrets.OPENROUTER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d @-)
+
+          echo "$API_RESPONSE"
 
           FEEDBACK_CONTENT=$(echo "$API_RESPONSE" | jq -r '.choices[0].message.content')
           echo "feedback<<EOF" >> $GITHUB_OUTPUT
