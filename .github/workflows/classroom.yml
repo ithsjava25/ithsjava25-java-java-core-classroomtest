@@ -159,7 +159,6 @@ jobs:
           echo "feedback<<EOF" >> $GITHUB_OUTPUT
           echo "$FEEDBACK_CONTENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Post Feedback as PR Comment ✍️
         uses: actions/github-script@v7
         env:
@@ -168,21 +167,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo } = context.repo;
-            const branchName = "feedback";
+            const targetTitle = "Feedback";
 
-            // Find the open PR for the feedback branch
+            // List all open PRs
             const { data: pullRequests } = await github.rest.pulls.list({
               owner,
               repo,
-              head: `${owner}:${branchName}`,
-              state: "open"
+              state: "open",
+              per_page: 100
             });
 
-            if (pullRequests.length === 0) {
-              throw new Error(`No open pull request found for branch '${branchName}'`);
+            const matchingPR = pullRequests.find(pr => pr.title.trim().toLowerCase() === targetTitle.toLowerCase());
+
+            if (!matchingPR) {
+              throw new Error(`No open pull request found with title '${targetTitle}'`);
             }
 
-            const prNumber = pullRequests[0].number;
+            const prNumber = matchingPR.number;
             const timestamp = new Date().toISOString();
             const body = `### 🤖 AI Feedback\n\n${process.env.FEEDBACK_BODY}\n\n---\n🕒 _Posted on ${timestamp}_`;
 
@@ -193,4 +194,4 @@ jobs:
               body
             });
 
-            console.log(`✅ Posted new feedback to PR #${prNumber}`);
+            console.log(`✅ Posted feedback to PR #${prNumber} titled '${targetTitle}'`);
