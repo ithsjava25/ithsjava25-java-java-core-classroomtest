@@ -160,7 +160,6 @@ jobs:
           echo "$FEEDBACK_CONTENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # 💬 Post Feedback
       - name: Post Feedback as PR Comment ✍️
         uses: actions/github-script@v7
         env:
@@ -168,31 +167,30 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const signature = "";
-            const body = `${process.env.FEEDBACK_BODY}\n\n${signature}`;
             const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
+            const branchName = "feedback";
 
-            const { data: comments } = await github.rest.issues.listComments({
+            // Find the open PR for the feedback branch
+            const { data: pullRequests } = await github.rest.pulls.list({
               owner,
               repo,
-              issue_number,
+              head: `${owner}:${branchName}`,
+              state: "open"
             });
 
-            const previousComment = comments.find(comment => comment.body.includes(signature));
-
-            if (previousComment) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: previousComment.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body,
-              });
+            if (pullRequests.length === 0) {
+              throw new Error(`No open pull request found for branch '${branchName}'`);
             }
+
+            const prNumber = pullRequests[0].number;
+            const timestamp = new Date().toISOString();
+            const body = `### 🤖 AI Feedback\n\n${process.env.FEEDBACK_BODY}\n\n---\n🕒 _Posted on ${timestamp}_`;
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body
+            });
+
+            console.log(`✅ Posted new feedback to PR #${prNumber}`);
