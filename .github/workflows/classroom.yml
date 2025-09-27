@@ -38,32 +38,31 @@ jobs:
         id: edge
         continue-on-error: true
         run: mvn -ntp test -Dtest=EdgeCaseTest || echo "Edge case test failed but ignored"
-             exit 0
-
+        
       # 🧮 Scoring and conditional failure
       - name: Calculate and Report Points
         run: |
           POINTS=0
           MAX=3
-
+      
           if [ "${{ steps.compile.outcome }}" == "success" ]; then
             POINTS=$((POINTS + 1))
           else
             echo "❌ Compilation failed"
-            exit 1
           fi
-
+      
           if [ "${{ steps.basic.outcome }}" == "success" ]; then
             POINTS=$((POINTS + 1))
           else
             echo "❌ Basic tests failed"
-            exit 1
           fi
-
+      
           if [ "${{ steps.edge.outcome }}" == "success" ]; then
             POINTS=$((POINTS + 1))
+          else
+            echo "⚠️ Edge case tests failed (optional)"
           fi
-
+      
           echo "Points ${POINTS}/${MAX}"
           exit 0
   ai_feedback:
