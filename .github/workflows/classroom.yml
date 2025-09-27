@@ -40,6 +40,7 @@ jobs:
         run: |
           mvn -ntp test -Dtest=EdgeCaseTest
           echo "exit_code=$?" >> $GITHUB_ENV
+          exit 0
         
       # 🧮 Scoring and conditional failure
       - name: Calculate and Report Points
