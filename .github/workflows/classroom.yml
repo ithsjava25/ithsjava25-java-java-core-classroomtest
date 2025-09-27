@@ -69,11 +69,6 @@ jobs:
     needs: autograding
     if: ${{ needs.autograding.result == 'success' }}
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-  provide_feedback:
-    runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     env:
