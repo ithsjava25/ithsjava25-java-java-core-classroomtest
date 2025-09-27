@@ -38,11 +38,9 @@ jobs:
         id: edge
         continue-on-error: true
         run: |
-          mvn -ntp test -Dtest=EdgeCaseTest
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_ENV
-          [ $EXIT_CODE -eq 0 ] || echo "⚠️ Edge case test failed but continuing"
-              
+          echo "exit_code=0" >> $GITHUB_ENV
+          mvn -ntp test -Dtest=EdgeCaseTest || echo "exit_code=1" >> $GITHUB_ENV
+                    
       # 🧮 Scoring and conditional failure
       - name: Calculate and Report Points
         run: |
