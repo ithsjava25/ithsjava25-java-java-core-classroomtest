@@ -65,8 +65,8 @@ jobs:
             echo "⚠️ Edge case tests failed (optional)"
           fi
       
-          echo "::notice title=Autograding complete::Points ${PASS}/${TOTAL}"
-          echo "::notice title=Autograding report::{\"totalPoints\":${PASS},\"maxPoints\":${TOTAL}}"
+          echo "::notice title=Autograding complete::Points ${POINTS}/${MAX}"
+          echo "::notice title=Autograding report::{\"totalPoints\":${POINTS},\"maxPoints\":${MAX}}"
           exit 0
   ai_feedback:
     name: AI-Powered Feedback
