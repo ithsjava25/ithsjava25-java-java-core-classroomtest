@@ -37,7 +37,9 @@ jobs:
       - name: Edge Case Tests
         id: edge
         continue-on-error: true
-        run: mvn -ntp test -Dtest=EdgeCaseTest || echo "Edge case test failed but ignored"
+        run: |
+          mvn -ntp test -Dtest=EdgeCaseTest
+          echo "exit_code=$?" >> $GITHUB_ENV
         
       # 🧮 Scoring and conditional failure
       - name: Calculate and Report Points
@@ -57,7 +59,7 @@ jobs:
             echo "❌ Basic tests failed"
           fi
       
-          if [ "${{ steps.edge.outcome }}" == "success" ]; then
+          if [ "$exit_code" -eq 0 ]; then
             POINTS=$((POINTS + 1))
           else
             echo "⚠️ Edge case tests failed (optional)"
