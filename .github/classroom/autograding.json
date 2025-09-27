@@ -1,14 +1,24 @@
 {
   "tests": [
     {
-      "name": "Grading",
-      "setup": "",
-      "run": "mvn test",
-      "input": "",
-      "output": "",
-      "comparison": "included",
+      "name": "Compilation Check",
+      "run": "mvn compile",
+      "points": 0,
       "timeout": 10,
-      "points": 1
+      "required": true
+    },
+    {
+      "name": "Basic Tests",
+      "run": "mvn test -Dtest=BasicTest",
+      "points": 1,
+      "timeout": 10,
+      "required": true
+    },
+    {
+      "name": "Edge Case Tests",
+      "run": "mvn test -Dtest=EdgeCaseTest",
+      "points": 2,
+      "timeout": 10
     }
   ]
 }
