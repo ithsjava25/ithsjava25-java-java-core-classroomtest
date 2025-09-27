@@ -187,8 +187,9 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const targetTitle = "Feedback";
+            const signature = "🤖 AI Feedback";
 
-            // List all open PRs
+            // Find the PR by title
             const { data: pullRequests } = await github.rest.pulls.list({
               owner,
               repo,
@@ -197,20 +198,46 @@ jobs:
             });
 
             const matchingPR = pullRequests.find(pr => pr.title.trim().toLowerCase() === targetTitle.toLowerCase());
-
             if (!matchingPR) {
               throw new Error(`No open pull request found with title '${targetTitle}'`);
             }
 
             const prNumber = matchingPR.number;
-            const timestamp = new Date().toISOString();
-            const body = `### 🤖 AI Feedback\n\n${process.env.FEEDBACK_BODY}\n\n---\n🕒 _Posted on ${timestamp}_`;
 
-            await github.rest.issues.createComment({
+            // Get all comments on the PR
+            const { data: comments } = await github.rest.issues.listComments({
               owner,
               repo,
               issue_number: prNumber,
-              body
+              per_page: 100
             });
 
-            console.log(`✅ Posted feedback to PR #${prNumber} titled '${targetTitle}'`);
+            // Find existing comment from github-actions with our signature
+            const existing = comments.find(c =>
+              c.user?.login === "github-actions[bot]" &&
+              c.body?.includes(signature)
+            );
+
+            const timestamp = new Date().toISOString();
+            const newEntry = `🕒 _Posted on ${timestamp}_\n\n${process.env.FEEDBACK_BODY}\n\n---\n`;
+
+            if (existing) {
+              const updatedBody = `${newEntry}${existing.body}`;
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body: updatedBody
+              });
+              console.log(`🔄 Updated existing comment on PR #${prNumber}`);
+            } else {
+              const body = `### ${signature}\n\n${newEntry}`;
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body
+              });
+              console.log(`🆕 Posted new comment on PR #${prNumber}`);
+            }
+
