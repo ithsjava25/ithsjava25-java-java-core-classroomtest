@@ -50,8 +50,10 @@ jobs:
         id: edge
         continue-on-error: true
         run: |
+          set +e
           mvn -ntp test -Dtest=EdgeCaseTest
-          if [ $? -eq 0 ]; then
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 0 ]; then
             echo "result=1/1" >> $GITHUB_OUTPUT
           else
             echo "result=0/1" >> $GITHUB_OUTPUT
