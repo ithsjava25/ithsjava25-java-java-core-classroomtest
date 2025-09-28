@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class MainTest {
+public class EdgeCaseTest {
     @Test
-    void test() {
-        assertThat(true).isTrue();
+    void shouldAlwaysFail() {
+        assertThat("actual").isEqualTo("expected");
     }
 }
