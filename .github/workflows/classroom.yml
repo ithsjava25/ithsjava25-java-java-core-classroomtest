@@ -29,9 +29,9 @@ jobs:
         run: |
           mvn -ntp compile
           if [ $? -eq 0 ]; then
-          echo "result=1/1" >> $GITHUB_OUTPUT
+            echo "result=1/1" >> $GITHUB_OUTPUT
           else
-          echo "result=0/1" >> $GITHUB_OUTPUT
+            echo "result=0/1" >> $GITHUB_OUTPUT
           fi
 
       # ✅ Basic functionality
@@ -40,9 +40,9 @@ jobs:
         run: |
           mvn -ntp test -Dtest=BasicTest
           if [ $? -eq 0 ]; then
-          echo "result=1/1" >> $GITHUB_OUTPUT
+            echo "result=1/1" >> $GITHUB_OUTPUT
           else
-          echo "result=0/1" >> $GITHUB_OUTPUT
+            echo "result=0/1" >> $GITHUB_OUTPUT
           fi
 
       # ⚠️ Optional edge cases
@@ -50,12 +50,11 @@ jobs:
         id: edge
         continue-on-error: true
         run: |
-#          echo "exit_code=0" >> $GITHUB_ENV
           mvn -ntp test -Dtest=EdgeCaseTest
           if [ $? -eq 0 ]; then
-          echo "result=1/1" >> $GITHUB_OUTPUT
+            echo "result=1/1" >> $GITHUB_OUTPUT
           else
-          echo "result=0/1" >> $GITHUB_OUTPUT
+            echo "result=0/1" >> $GITHUB_OUTPUT
           fi
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
