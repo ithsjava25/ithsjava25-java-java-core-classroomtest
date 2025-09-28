@@ -26,48 +26,74 @@ jobs:
       # 🧪 Compilation
       - name: Compilation Check
         id: compile
-        run: mvn -ntp compile
+        run: |
+          mvn -ntp compile
+          if [ $? -eq 0 ]; then
+          echo "result=1/1" >> $GITHUB_OUTPUT
+          else
+          echo "result=0/1" >> $GITHUB_OUTPUT
+          fi
 
       # ✅ Basic functionality
       - name: Basic Tests
         id: basic
-        run: mvn -ntp test -Dtest=BasicTest
+        run: |
+          mvn -ntp test -Dtest=BasicTest
+          if [ $? -eq 0 ]; then
+          echo "result=1/1" >> $GITHUB_OUTPUT
+          else
+          echo "result=0/1" >> $GITHUB_OUTPUT
+          fi
 
       # ⚠️ Optional edge cases
       - name: Edge Case Tests
         id: edge
         continue-on-error: true
         run: |
-          echo "exit_code=0" >> $GITHUB_ENV
-          mvn -ntp test -Dtest=EdgeCaseTest || echo "exit_code=1" >> $GITHUB_ENV
-                    
+#          echo "exit_code=0" >> $GITHUB_ENV
+          mvn -ntp test -Dtest=EdgeCaseTest
+          if [ $? -eq 0 ]; then
+          echo "result=1/1" >> $GITHUB_OUTPUT
+          else
+          echo "result=0/1" >> $GITHUB_OUTPUT
+          fi
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          COMPILATION_RESULTS: "${{ steps.compile.outputs.result }}"
+          BASIC_RESULTS: "${{ steps.basic.outputs.result }}"
+          EDGE_RESULTS: "${{ steps.edge.outputs.result }}"
+        with:
+          runners: compile,basic,edge
+
       # 🧮 Scoring and conditional failure
-      - name: Calculate and Report Points
-        run: |
-          POINTS=0
-          MAX=3
-      
-          if [ "${{ steps.compile.outcome }}" == "success" ]; then
-            POINTS=$((POINTS + 1))
-          else
-            echo "❌ Compilation failed"
-          fi
-      
-          if [ "${{ steps.basic.outcome }}" == "success" ]; then
-            POINTS=$((POINTS + 1))
-          else
-            echo "❌ Basic tests failed"
-          fi
-      
-          if [ "$exit_code" -eq 0 ]; then
-            POINTS=$((POINTS + 1))
-          else
-            echo "⚠️ Edge case tests failed (optional)"
-          fi
-      
-          echo "::notice title=Autograding complete::Points ${POINTS}/${MAX}"
-          echo "::notice title=Autograding report::{\"totalPoints\":${POINTS},\"maxPoints\":${MAX}}"
-          exit 0
+#      - name: Calculate and Report Points
+#        run: |
+#          POINTS=0
+#          MAX=3
+#
+#          if [ "${{ steps.compile.outcome }}" == "success" ]; then
+#            POINTS=$((POINTS + 1))
+#          else
+#            echo "❌ Compilation failed"
+#          fi
+#
+#          if [ "${{ steps.basic.outcome }}" == "success" ]; then
+#            POINTS=$((POINTS + 1))
+#          else
+#            echo "❌ Basic tests failed"
+#          fi
+#
+#          if [ "$exit_code" -eq 0 ]; then
+#            POINTS=$((POINTS + 1))
+#          else
+#            echo "⚠️ Edge case tests failed (optional)"
+#          fi
+#
+#          echo "::notice title=Autograding complete::Points ${POINTS}/${MAX}"
+#          echo "::notice title=Autograding report::{\"totalPoints\":${POINTS},\"maxPoints\":${MAX}}"
+#          exit 0
+
   ai_feedback:
     name: AI-Powered Feedback
     needs: autograding
