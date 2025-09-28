@@ -1,269 +1,50 @@
-name: GitHub Classroom Workflow
-
-on:
-  push:
-    branches: [main]
-
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
 permissions:
   checks: write
   actions: read
   contents: read
-  pull-requests: write
-
 jobs:
-  autograding:
-    name: Autograding
+  run-autograding-tests:
     runs-on: ubuntu-latest
-    outputs:
-      grading_status: ${{ steps.grading.outcome }}
+    if: github.actor != 'github-classroom[bot]'
     steps:
-      - uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-      - uses: actions/checkout@v5
-
-      # 🧪 Compilation
-      - name: Compilation Check
-        id: compile
-        run: |
-          mvn -ntp compile
-          if [ $? -eq 0 ]; then
-            echo "result=1/1" >> $GITHUB_OUTPUT
-          else
-            echo "result=0/1" >> $GITHUB_OUTPUT
-          fi
-
-      # ✅ Basic functionality
-      - name: Basic Tests
-        id: basic
-        run: |
-          mvn -ntp test -Dtest=BasicTest
-          if [ $? -eq 0 ]; then
-            echo "result=1/1" >> $GITHUB_OUTPUT
-          else
-            echo "result=0/1" >> $GITHUB_OUTPUT
-          fi
-
-      # ⚠️ Optional edge cases
-      - name: Edge Case Tests
-        id: edge
-        continue-on-error: true
-        run: |
-          set +e
-          mvn -ntp test -Dtest=EdgeCaseTest
-          EXIT_CODE=$?
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "result=1/1" >> $GITHUB_OUTPUT
-          else
-            echo "result=0/1" >> $GITHUB_OUTPUT
-          fi
-      - name: Autograding Reporter
-        uses: classroom-resources/autograding-grading-reporter@v1
-        env:
-          COMPILATION_RESULTS: "${{ steps.compile.outputs.result }}"
-          BASIC_RESULTS: "${{ steps.basic.outputs.result }}"
-          EDGE_RESULTS: "${{ steps.edge.outputs.result }}"
-        with:
-          runners: compile,basic,edge
-
-      # 🧮 Scoring and conditional failure
-#      - name: Calculate and Report Points
-#        run: |
-#          POINTS=0
-#          MAX=3
-#
-#          if [ "${{ steps.compile.outcome }}" == "success" ]; then
-#            POINTS=$((POINTS + 1))
-#          else
-#            echo "❌ Compilation failed"
-#          fi
-#
-#          if [ "${{ steps.basic.outcome }}" == "success" ]; then
-#            POINTS=$((POINTS + 1))
-#          else
-#            echo "❌ Basic tests failed"
-#          fi
-#
-#          if [ "$exit_code" -eq 0 ]; then
-#            POINTS=$((POINTS + 1))
-#          else
-#            echo "⚠️ Edge case tests failed (optional)"
-#          fi
-#
-#          echo "::notice title=Autograding complete::Points ${POINTS}/${MAX}"
-#          echo "::notice title=Autograding report::{\"totalPoints\":${POINTS},\"maxPoints\":${MAX}}"
-#          exit 0
-
-  ai_feedback:
-    name: AI-Powered Feedback
-    needs: autograding
-    if: ${{ needs.autograding.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    env:
-      OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
-      SYSTEM_PROMPT: ${{ vars.SYSTEM_PROMPT }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Read assignment instructions
-        id: instructions
-        run: |
-          # Reads the content of the README.md file into an output variable.
-          # The `EOF` marker is used to handle multi-line file content.
-          echo "instructions=$(cat README.md | sed 's/\"/\\\"/g' | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n/\\\\n/g')" >> $GITHUB_OUTPUT
-
-      - name: Read source code
-        id: source_code
-        run: |
-          {
-            echo 'source_code<<EOF'
-            find src/main/java -type f -name "*.java" | while read -r file; do
-              echo "=== File: $file ==="
-              cat "$file"
-              echo
-            done
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Read test code
-        id: test_code
-        run: |
-          {
-            echo 'test_code<<EOF'
-            if [ -d "src/test/java" ]; then
-              find src/test/java -type f -name "*.java" | while read -r file; do
-                echo "=== File: $file ==="
-                cat "$file"
-                echo
-              done
-            else
-              echo "No test code found."
-            fi
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-      - name: Generate AI Feedback
-        id: ai_feedback
-        run: |
-          # This step sends the collected data to the OpenRouter API.
-          INSTRUCTIONS=$(jq -Rs . <<'EOF'
-          ${{ steps.instructions.outputs.instructions }}
-          EOF
-          )
-          SOURCE_CODE=$(jq -Rs . <<'EOF'
-          ${{ steps.source_code.outputs.source_code }}
-          EOF
-          )
-          TEST_CODE=$(jq -Rs . <<'EOF'
-          ${{ steps.test_code.outputs.test_code }}
-          EOF
-          )
-          
-          if [ -z "$INSTRUCTIONS" ] || [ -z "$SOURCE_CODE" ] || [ -z "$TEST_CODE" ]; then
-            echo "Error: One or more required variables are not set."
-          exit 1
-          fi
-
-          # Assigning to USER_CONTENT with variable expansion
-          PAYLOAD="Please provide feedback on the following Java assignment.
-          
-          --- Assignment Instructions ---
-          ${INSTRUCTIONS}
-          
-          --- Source files ---          
-          ${SOURCE_CODE}
-          
-          --- Test files ---
-          ${TEST_CODE}"
-          
-          JSON_CONTENT=$(jq -n \
-          --argjson model "$OPENROUTER_MODEL" \
-          --arg system_prompt "$SYSTEM_PROMPT" \
-          --arg payload "$PAYLOAD" \
-          '{
-          models: $model,
-          messages: [
-            {role: "system", content: $system_prompt},
-            {role: "user", content: $payload}
-          ]
-          }')
-          
-          echo "$JSON_CONTENT"
-          
-          API_RESPONSE=$(echo "$JSON_CONTENT" | curl https://openrouter.ai/api/v1/chat/completions \
-          -H "Authorization: Bearer ${{ secrets.OPENROUTER_API_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d @-)
-
-          echo "$API_RESPONSE"
-
-          FEEDBACK_CONTENT=$(echo "$API_RESPONSE" | jq -r '.choices[0].message.content')
-          echo "feedback<<EOF" >> $GITHUB_OUTPUT
-          echo "$FEEDBACK_CONTENT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      - name: Post Feedback as PR Comment ✍️
-        uses: actions/github-script@v7
-        env:
-          FEEDBACK_BODY: ${{ steps.ai_feedback.outputs.feedback }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { owner, repo } = context.repo;
-            const targetTitle = "Feedback";
-            const signature = "🤖 AI Feedback";
-
-            // Find the PR by title
-            const { data: pullRequests } = await github.rest.pulls.list({
-              owner,
-              repo,
-              state: "open",
-              per_page: 100
-            });
-
-            const matchingPR = pullRequests.find(pr => pr.title.trim().toLowerCase() === targetTitle.toLowerCase());
-            if (!matchingPR) {
-              throw new Error(`No open pull request found with title '${targetTitle}'`);
-            }
-
-            const prNumber = matchingPR.number;
-
-            // Get all comments on the PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner,
-              repo,
-              issue_number: prNumber,
-              per_page: 100
-            });
-
-            // Find existing comment from github-actions with our signature
-            const existing = comments.find(c =>
-              c.user?.login === "github-actions[bot]" &&
-              c.body?.includes(signature)
-            );
-
-            const timestamp = new Date().toISOString();
-            const newEntry = `🕒 _Posted on ${timestamp}_\n\n${process.env.FEEDBACK_BODY}\n\n---\n`;
-
-            if (existing) {
-              const updatedBody = `${newEntry}${existing.body}`;
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body: updatedBody
-              });
-              console.log(`🔄 Updated existing comment on PR #${prNumber}`);
-            } else {
-              const body = `### ${signature}\n\n${newEntry}`;
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: prNumber,
-                body
-              });
-              console.log(`🆕 Posted new comment on PR #${prNumber}`);
-            }
-
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Compilation Check
+      id: compilation-check
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Compilation Check
+        setup-command: ''
+        command: mvn -ntp compile
+        timeout: 10
+        max-score: 1
+    - name: Basic Tests
+      id: basic-tests
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Basic Tests
+        setup-command: ''
+        command: mvn - ntp test -DBasicTest
+        timeout: 10
+        max-score: 1
+    - name: Edge Case Tests
+      id: edge-case-tests
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Edge Case Tests
+        setup-command: ''
+        command: mvn -ntp test -Dtest=EdgeCaseTest
+        timeout: 10
+        max-score: 1
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        COMPILATION-CHECK_RESULTS: "${{steps.compilation-check.outputs.result}}"
+        BASIC-TESTS_RESULTS: "${{steps.basic-tests.outputs.result}}"
+        EDGE-CASE-TESTS_RESULTS: "${{steps.edge-case-tests.outputs.result}}"
+      with:
+        runners: compilation-check,basic-tests,edge-case-tests
