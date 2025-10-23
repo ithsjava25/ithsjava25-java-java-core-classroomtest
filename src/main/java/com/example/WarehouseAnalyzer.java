@@ -145,26 +145,46 @@ class WarehouseAnalyzer {
      * @param standardDeviations threshold in standard deviations (e.g., 2.0)
      * @return list of products considered outliers
      */
+
+
     public List<Product> findPriceOutliers(double standardDeviations) {
-        List<Product> products = warehouse.getProducts();
-        int n = products.size();
-        if (n == 0) return List.of();
-        double sum = products.stream().map(Product::price).mapToDouble(bd -> bd.doubleValue()).sum();
-        double mean = sum / n;
-        double variance = products.stream()
+        List<Product> productList = warehouse.getProducts();
+        List<BigDecimal> products = productList.stream()
                 .map(Product::price)
-                .mapToDouble(bd -> Math.pow(bd.doubleValue() - mean, 2))
-                .sum() / n;
-        double std = Math.sqrt(variance);
-        double threshold = standardDeviations * std;
+                .sorted()
+                .toList();
+
+        var Q1 = getPercentile(products, 25);
+        var Q3 = getPercentile(products, 75);
+
+        var IQR = Q3.doubleValue()-Q1.doubleValue();
+        var lowRange = Q1.doubleValue()-standardDeviations*IQR;
+        var highRange = Q3.doubleValue()+standardDeviations*IQR;
+
         List<Product> outliers = new ArrayList<>();
-        for (Product p : products) {
-            double diff = Math.abs(p.price().doubleValue() - mean);
-            if (diff > threshold) outliers.add(p);
+        for(Product p : productList){
+            if((p.price.doubleValue()>highRange) || (p.price.doubleValue()<lowRange))
+                outliers.add(p);
         }
         return outliers;
     }
-    
+
+
+    static <T extends Comparable<T>> T getPercentile(Collection<T> input, double percentile) {
+        if (input == null || input.isEmpty()) {
+            throw new IllegalArgumentException("The input dataset cannot be null or empty.");
+        }
+        if (percentile < 0 || percentile > 100) {
+            throw new IllegalArgumentException("Percentile must be between 0 and 100 inclusive.");
+        }
+        List<T> sortedList = input.stream()
+                .sorted()
+                .collect(Collectors.toList());
+
+        int rank = percentile == 0 ? 1 : (int) Math.ceil(percentile / 100.0 * input.size());
+        return sortedList.get(rank - 1);
+    }
+
     /**
      * Groups all shippable products into ShippingGroup buckets such that each group's total weight
      * does not exceed the provided maximum. The goal is to minimize the number of groups and/or total
