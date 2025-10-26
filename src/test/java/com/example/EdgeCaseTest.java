@@ -47,15 +47,15 @@ class EdgeCaseTest {
          */
         void should_filterByPriceRange_withBoundaryConditions() {
             // Arrange - Products at exact boundaries
-            Product exactMin = new FoodProduct(UUID.randomUUID(), "MinPrice", Category.of("Test"),
+            Product exactMin = new FoodProduct(UUID.randomUUID(), "MinPrice", (jdk.jfr.Category) Category.of("Test"),
                     new BigDecimal("10.00"), LocalDate.now().plusDays(1), BigDecimal.ONE);
-            Product belowMin = new FoodProduct(UUID.randomUUID(), "BelowMin", Category.of("Test"),
+            Product belowMin = new FoodProduct(UUID.randomUUID(), "BelowMin", (jdk.jfr.Category) Category.of("Test"),
                     new BigDecimal("9.99"), LocalDate.now().plusDays(1), BigDecimal.ONE);
-            Product exactMax = new FoodProduct(UUID.randomUUID(), "MaxPrice", Category.of("Test"),
+            Product exactMax = new FoodProduct(UUID.randomUUID(), "MaxPrice", (jdk.jfr.Category) Category.of("Test"),
                     new BigDecimal("100.00"), LocalDate.now().plusDays(1), BigDecimal.ONE);
-            Product aboveMax = new FoodProduct(UUID.randomUUID(), "AboveMax", Category.of("Test"),
+            Product aboveMax = new FoodProduct(UUID.randomUUID(), "AboveMax", (jdk.jfr.Category) Category.of("Test"),
                     new BigDecimal("100.01"), LocalDate.now().plusDays(1), BigDecimal.ONE);
-            Product inRange = new FoodProduct(UUID.randomUUID(), "InRange", Category.of("Test"),
+            Product inRange = new FoodProduct(UUID.randomUUID(), "InRange", (jdk.jfr.Category) Category.of("Test"),
                     new BigDecimal("50.00"), LocalDate.now().plusDays(1), BigDecimal.ONE);
 
             warehouse.addProduct(exactMin);
@@ -89,17 +89,17 @@ class EdgeCaseTest {
         void should_findProductsExpiringWithinDays() {
             // Arrange - Various expiration scenarios
             LocalDate today = LocalDate.now();
-            Product expiringToday = new FoodProduct(UUID.randomUUID(), "Today", Category.of("Dairy"),
+            Product expiringToday = new FoodProduct(UUID.randomUUID(), "Today", (jdk.jfr.Category) Category.of("Dairy"),
                     BigDecimal.TEN, today, BigDecimal.ONE);
-            Product expiringTomorrow = new FoodProduct(UUID.randomUUID(), "Tomorrow", Category.of("Dairy"),
+            Product expiringTomorrow = new FoodProduct(UUID.randomUUID(), "Tomorrow", (jdk.jfr.Category) Category.of("Dairy"),
                     BigDecimal.TEN, today.plusDays(1), BigDecimal.ONE);
-            Product expiringIn3Days = new FoodProduct(UUID.randomUUID(), "In3Days", Category.of("Dairy"),
+            Product expiringIn3Days = new FoodProduct(UUID.randomUUID(), "In3Days", (jdk.jfr.Category) Category.of("Dairy"),
                     BigDecimal.TEN, today.plusDays(3), BigDecimal.ONE);
-            Product expiringIn8Days = new FoodProduct(UUID.randomUUID(), "In8Days", Category.of("Dairy"),
+            Product expiringIn8Days = new FoodProduct(UUID.randomUUID(), "In8Days", (jdk.jfr.Category) Category.of("Dairy"),
                     BigDecimal.TEN, today.plusDays(8), BigDecimal.ONE);
-            Product alreadyExpired = new FoodProduct(UUID.randomUUID(), "Expired", Category.of("Dairy"),
+            Product alreadyExpired = new FoodProduct(UUID.randomUUID(), "Expired", (jdk.jfr.Category) Category.of("Dairy"),
                     BigDecimal.TEN, today.minusDays(1), BigDecimal.ONE);
-            Product nonPerishable = new ElectronicsProduct(UUID.randomUUID(), "Laptop", Category.of("Electronics"),
+            Product nonPerishable = new ElectronicsProduct(UUID.randomUUID(), "Laptop", (jdk.jfr.Category) Category.of("Electronics"),
                     BigDecimal.TEN, 12, BigDecimal.ONE);
 
             warehouse.addProduct(expiringToday);
@@ -391,5 +391,8 @@ class EdgeCaseTest {
             assertThat(stats.getMostExpensiveProduct().name()).isEqualTo("Laptop");
             assertThat(stats.getCheapestProduct().name()).isEqualTo("Milk");
         }
+    }
+
+    public static interface Perishable {
     }
 }
